@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Loading state -->
+  <div id="loading" class="state hidden">
+    <div class="spinner"></div>
+    <p>Generating flashcards…</p>
+  </div>
+
+  <!-- No context state -->
+  <div id="empty" class="state hidden">
+    <p>Select text on an O'Reilly book page, then right-click → <strong>Generate Flashcards</strong>.</p>
+  </div>
+
+  <!-- Preview state -->
+  <div id="preview" class="state hidden">
+    <div class="meta">
+      <label>Book <input type="text" id="book-title"></label>
+      <label>Chapter <input type="text" id="chapter-title"></label>
+      <label>Deck <input type="text" id="deck-name"></label>
+    </div>
+    <div id="cards"></div>
+    <div id="image-previews" class="hidden"></div>
+    <textarea id="feedback" placeholder="Feedback for regeneration"></textarea>
+    <div class="actions">
+      <button id="add-card" class="secondary">+ Add Card</button>
+      <button id="regenerate" class="secondary">Regenerate</button>
+      <button id="send-to-anki" class="primary">Send to Anki</button>
+    </div>
+  </div>
+
+  <!-- Confirmation state -->
+  <div id="confirmation" class="state hidden">
+    <p id="confirm-msg"></p>
+    <button id="done" class="primary">Done</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

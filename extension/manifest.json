@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "flshmkr",
+  "version": "1.0",
+  "description": "Generate Anki flashcards from O'Reilly Learning highlights",
+  "permissions": ["contextMenus", "activeTab", "storage"],
+  "host_permissions": [
+    "https://learning.oreilly.com/*",
+    "https://learn.microsoft.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://learning.oreilly.com/*",
+        "https://learn.microsoft.com/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "flshmkr"
+  },
+  "commands": {
+    "rephrase-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "Rephrase selected text"
+    }
+  }
+}

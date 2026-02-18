@@ -1,0 +1,149 @@
+@font-face {
+    font-family: Ubuntu;
+    src: url("_Ubuntu-Regular.ttf");
+}
+
+@font-face {
+    font-family: Ubuntu-Bold;
+    src: url("_Ubuntu-Bold.ttf");
+}
+
+@font-face {
+    font-family: Operator-Mono;
+    src: url("_operator-mono2.otf");
+}
+
+:root {
+    --bg-dark: #0a0e27;
+    --bg-card: #12182e;
+    --accent-primary: #7c3aed;
+    --accent-secondary: #ec4899;
+    --accent-tertiary: #06b6d4;
+    --text-bright: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-glow: rgba(124, 58, 237, 0.3);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-dark);
+    background-image:
+        radial-gradient(at 20% 30%, rgba(124, 58, 237, 0.15) 0px, transparent 50%),
+        radial-gradient(at 80% 70%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+    margin: 0;
+    padding: 8px;
+    min-height: 100vh;
+}
+
+.card {
+    font-family: "Ubuntu", sans-serif;
+    font-size: 18px;
+    text-align: center;
+    color: var(--text-bright);
+    line-height: 1.75;
+    max-width: 850px;
+    margin: 0.5em auto;
+    padding: 0 1em;
+}
+
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg,
+            transparent,
+            var(--accent-primary),
+            var(--accent-secondary),
+            transparent);
+    margin: 1em 0;
+    box-shadow: 0 0 10px var(--border-glow);
+}
+
+.back {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-top: 0.5em;
+}
+
+.extra {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-top: 0.5em;
+}
+
+.cloze {
+    font-weight: 600;
+    color: var(--accent-tertiary);
+}
+
+pre {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-left: 4px solid var(--accent-primary);
+    color: var(--text-bright);
+    border-radius: 10px;
+    font-family: "Operator-Mono", monospace;
+    font-size: 14px;
+    line-height: 1.75;
+    padding: 0.9em 1.1em;
+    margin: 0.2em 0.15em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: auto;
+    text-align: left;
+    display: block;
+    box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    position: relative;
+    font-feature-settings: "liga" 1, "calt" 1;
+    font-variant-ligatures: normal;
+}
+
+pre::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    padding: 1px;
+    background: linear-gradient(135deg,
+            var(--accent-primary),
+            var(--accent-secondary),
+            var(--accent-tertiary));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+code {
+    font-family: "Operator-Mono", monospace;
+    background: rgba(124, 58, 237, 0.15);
+    color: var(--accent-tertiary);
+    padding: 0.3em 0.6em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.1);
+    font-feature-settings: "liga" 1, "calt" 1;
+    font-variant-ligatures: normal;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    border: none;
+    box-shadow: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 10px 0;
+}
