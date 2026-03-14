@@ -26,7 +26,7 @@ app.add_middleware(
 
 def _make_deck_name(book_title: str, chapter_title: str) -> str:
     def clean(s: str) -> str:
-        return re.sub(r"[:\"*/\\|<>?]+", "", s).strip()
+        return re.sub(r"[:\"]+", "", s).strip()
 
 
     # Chapter titles with :: are pre-formatted deck hierarchies (e.g. Microsoft Learn)

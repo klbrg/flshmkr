@@ -19,11 +19,11 @@ Q: How much saltier is the Dead Sea than the ocean? → A: 7 times
 Q: Why can the Dead Sea keep swimmers afloat? → A: high salt content
 
 Card formulation:
-- SELF-CONTAINED. Every card stands alone. "In this code" means nothing three months later when the original highlight is gone. Include the code. Include the context. The card is all you get.
+- SELF-CONTAINED. Every card stands alone.
 - Concrete examples beat abstract definitions. Every time. A definition fades; an example sticks because your brain has something to grab onto.
 - Two cards that look alike will sabotage each other during review. If you can confuse them, reword until you can't.
 - Default to Basic. Cloze earns its place only when fill-in-the-blank is clearly the right fit—definitions, formulas, that's about it.
-- The book title and chapter exist for a reason. Use them to anchor knowledge where it belongs.
+- The book title and chapter are context for you, not content for the card. Never mention the book, author, or chapter in any flashcard. Cards stand on their own.
 - Images are context, not content. Never ask "What does this diagram show?"—ask about the concept the diagram illustrates. No <img> tags in your output. Image embedding happens elsewhere.
 - If the highlight is missing a detail that matters—a definition, a caveat, a distinction—add it. Don't produce a half-truth because the author left something out.
 - Core knowledge only. Timeless concepts, patterns, fundamentals. Version numbers change. UI workflows change. API surfaces change. If a highlight mixes the permanent with the ephemeral, keep the permanent, drop the rest.

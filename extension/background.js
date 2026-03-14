@@ -8,6 +8,7 @@ chrome.runtime.onInstalled.addListener(() => {
     documentUrlPatterns: [
       "https://learning.oreilly.com/*",
       "https://learn.microsoft.com/*",
+      "https://git-scm.com/*",
     ],
   });
 });

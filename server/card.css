@@ -122,13 +122,8 @@ pre::after {
 
 code {
     font-family: "Operator-Mono", monospace;
-    background: rgba(124, 58, 237, 0.15);
     color: var(--accent-tertiary);
-    padding: 0.3em 0.6em;
-    border-radius: 4px;
     font-size: 0.9em;
-    border: 1px solid rgba(124, 58, 237, 0.3);
-    box-shadow: 0 0 10px rgba(124, 58, 237, 0.1);
     font-feature-settings: "liga" 1, "calt" 1;
     font-variant-ligatures: normal;
 }

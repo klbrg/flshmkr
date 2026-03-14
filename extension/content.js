@@ -140,6 +140,73 @@ function parseMicrosoftLearn() {
   };
 }
 
+// Extract context from git-scm.com/book pages
+// URL pattern: /book/en/v2/Chapter-Name-Section-Name
+// Deck hierarchy: Pro Git::Chapter Name::Section Name
+function parseGitScm() {
+  // Use pathname + search: browsers treat a literal "?" as a query-string
+  // delimiter, so "What-is-Git?" ends up split across pathname and search.
+  const fullPath = window.location.pathname + window.location.search;
+  const match = fullPath.match(/\/book\/[^/]+\/v2\/(.+)/);
+  if (!match) {
+    return { book_title: "Pro Git", chapter_title: "", toc: "" };
+  }
+
+  const slug = decodeURIComponent(match[1]);
+
+  // Try to extract chapter and section from the page heading (e.g. "1.1 Getting Started - About Version Control")
+  const heading = document.querySelector("#main h1, #main h2, .chapter h1, .chapter h2");
+  if (heading) {
+    const headingMatch = heading.textContent.trim().match(
+      /^[\dA]+\.\d+\s+(.+?)\s+-\s+(.+)$/
+    );
+    if (headingMatch) {
+      return {
+        book_title: "Pro Git",
+        chapter_title: headingMatch[1].trim() + "::" + headingMatch[2].trim(),
+        toc: "",
+      };
+    }
+  }
+
+  // Fallback: derive chapter and section from URL slug
+  // Slugs look like "Getting-Started-About-Version-Control" or "Appendix-A:-Git-in-Other-Environments-Command-line-Git"
+  // The chapter name is the first hyphenated group that matches a known pattern
+  const chapterPatterns = [
+    /^(Getting-Started)-(.+)$/,
+    /^(Git-Basics)-(.+)$/,
+    /^(Git-Branching)-(.+)$/,
+    /^(Git-on-the-Server)-(.+)$/,
+    /^(Distributed-Git)-(.+)$/,
+    /^(GitHub)-(.+)$/,
+    /^(Git-Tools)-(.+)$/,
+    /^(Customizing-Git)-(.+)$/,
+    /^(Git-and-Other-Systems)-(.+)$/,
+    /^(Git-Internals)-(.+)$/,
+    /^(Appendix-[ABC]:-.+?)-(.+)$/,
+  ];
+
+  for (const pattern of chapterPatterns) {
+    const m = slug.match(pattern);
+    if (m) {
+      const chapter = m[1].replace(/[-:]+/g, " ").replace(/\s+/g, " ").trim();
+      const section = m[2].replace(/-/g, " ").trim();
+      return {
+        book_title: "Pro Git",
+        chapter_title: chapter + "::" + section,
+        toc: "",
+      };
+    }
+  }
+
+  // Last resort: use the whole slug as the chapter
+  return {
+    book_title: "Pro Git",
+    chapter_title: slug.replace(/-/g, " "),
+    toc: "",
+  };
+}
+
 function removeRephraseOverlay() {
   const existing = document.getElementById("flshmkr-rephrase-host");
   if (existing) existing.remove();
@@ -319,6 +386,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     };
 
     const host = window.location.hostname;
+
+    // Git book path
+    if (host === "git-scm.com") {
+      const ctx = parseGitScm();
+      buildResponse({ selected_text: selectedText, ...ctx }).then(sendResponse);
+      return true;
+    }
 
     // Microsoft Learn path
     if (host === "learn.microsoft.com") {

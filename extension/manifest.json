@@ -6,7 +6,8 @@
   "permissions": ["contextMenus", "activeTab", "storage"],
   "host_permissions": [
     "https://learning.oreilly.com/*",
-    "https://learn.microsoft.com/*"
+    "https://learn.microsoft.com/*",
+    "https://git-scm.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -15,7 +16,8 @@
     {
       "matches": [
         "https://learning.oreilly.com/*",
-        "https://learn.microsoft.com/*"
+        "https://learn.microsoft.com/*",
+        "https://git-scm.com/*"
       ],
       "js": ["content.js"]
     }

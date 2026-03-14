@@ -155,33 +155,49 @@ async def add_notes(
         # Append to the back of the last card
         flashcards[-1].back += missing_html
 
-    notes = []
-    for card in flashcards:
+    added = 0
+    updated = 0
+    errors = []
+
+    for i, card in enumerate(flashcards):
         tags = list({*card.tags, "flshmkr"})
 
         if card.card_type == "cloze":
-            note = {
-                "deckName": deck_name,
-                "modelName": "flshmkr Cloze",
-                "fields": {"Text": card.front, "Extra": card.back},
-                "tags": tags,
-                "options": {"allowDuplicate": False},
-            }
+            model = "flshmkr Cloze"
+            fields = {"Text": card.front, "Extra": card.back}
+            search_field = "Text"
         else:
-            note = {
-                "deckName": deck_name,
-                "modelName": "flshmkr Basic",
-                "fields": {"Front": card.front, "Back": card.back},
-                "tags": tags,
-                "options": {"allowDuplicate": False},
-            }
+            model = "flshmkr Basic"
+            fields = {"Front": card.front, "Back": card.back}
+            search_field = "Front"
 
-        notes.append(note)
+        # Check for existing note with the same front/text in this deck
+        search_val = fields[search_field].replace('"', '\\"')
+        query = f'"deck:{deck_name}" "note:{model}" "{search_field}:{search_val}"'
 
-    result = await _invoke("addNotes", notes=notes)
-    ids = result.get("result", [])
+        try:
+            found = await _invoke("findNotes", query=query)
+            existing_ids = found.get("result", [])
 
-    added = sum(1 for x in ids if x is not None)
-    errors = [f"Card {i + 1} failed (possible duplicate)" for i, x in enumerate(ids) if x is None]
+            if existing_ids:
+                # Update the first matching note
+                await _invoke(
+                    "updateNoteFields",
+                    note={"id": existing_ids[0], "fields": fields},
+                )
+                updated += 1
+            else:
+                await _invoke(
+                    "addNote",
+                    note={
+                        "deckName": deck_name,
+                        "modelName": model,
+                        "fields": fields,
+                        "tags": tags,
+                    },
+                )
+                added += 1
+        except Exception as e:
+            errors.append(f"Card {i + 1}: {e}")
 
-    return added, errors
+    return added + updated, errors
