@@ -1,5 +1,5 @@
 import re
-from sympy import sqrt, Rational, simplify, pi, Abs, Integer, ilcm
+from sympy import sqrt, Rational, simplify, pi, Abs, Integer, ilcm, symbols
 from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
 TR = standard_transformations + (implicit_multiplication_application,)
 LOC = {'sqrt': sqrt, 'Rational': Rational, 'pi': pi, 'Abs': Abs}
@@ -51,6 +51,7 @@ def l2py(s):
     s = re.sub(r'\^\s*(-?\d+|[a-zA-Z])', r'**(\1)', s)
     s = s.replace('{', '(').replace('}', ')')
     s = re.sub(r'\\[a-zA-Z]+', '', s)
+    s = re.sub(r'(\d+\.\d+)', r"Rational('\1')", s)
     return s
 def val(latex):
     return simplify(parse_expr(l2py(latex), transformations=TR, local_dict=LOC))
@@ -133,8 +134,10 @@ def value_check(front, back):
             v = val(_rhs(g))
             if _isnum(v): fv = v; break
         except Exception: pass
-    if fv is None: return 'skip'
-    return 'ok' if simplify(fv - bnum) == 0 else 'MISMATCH'
+    if fv is not None and bnum is not None:
+        return 'ok' if simplify(fv - bnum) == 0 else 'MISMATCH'
+    sc = _answer_selfcheck(front, back)
+    return sc if sc is not None else 'skip'
 def _mgn_check(front, back):
     ft = _strip(front); bnum = _numer(_grp(back))
     if bnum is None: return 'skip'
@@ -206,11 +209,92 @@ def _estimate_check(front, back):
     if ev is None or a is None or ev == 0: return 'skip'
     a = float(a); lo, hi = (0.5*ev, 2*ev) if ev > 0 else (2*ev, 0.5*ev)
     return 'ok' if lo <= a <= hi else 'MISMATCH'
+
+def _eqn_check(front, back):
+    ft = _strip(front)
+    if not re.search(r'\blös\b|lösning till|lös ekvationen|lös ut', ft, re.I): return None
+    eqg = None
+    for g in _grp(front):
+        if '=' in g and re.search(r'[a-zA-Z]', g): eqg = g; break
+    if eqg is None: return None
+    sol = None
+    for g in _grp(back) + [_strip(back)]:
+        m = re.search(r'([a-zA-Z])\s*=\s*([^,;]+)$', g.strip())
+        if m: sol = (m.group(1), m.group(2)); break
+    if sol is None: return 'skip'
+    try:
+        parts = eqg.split('=')
+        L = parse_expr(l2py(parts[0]), transformations=TR, local_dict=LOC)
+        R = parse_expr(l2py(parts[-1]), transformations=TR, local_dict=LOC)
+        v = symbols(sol[0]); x = val(sol[1])
+        return 'ok' if simplify(L.subs(v, x) - R.subs(v, x)) == 0 else 'MISMATCH'
+    except Exception: return 'skip'
+def _eval_check(front, back):
+    ft = _strip(front); groups = _grp(front)
+    var = vals = None
+    for g in groups:
+        m = re.match(r'\s*([a-zA-Z])\s*=\s*(.+)$', g.strip())
+        if m: var, vals = m.group(1), m.group(2)
+    if var is None:
+        m = re.search(r'(?:när|för|då)\s+([a-zA-Z])\s*=\s*(-?\d+(?:[.,]\d+)?)', ft)
+        if m: var, vals = m.group(1), m.group(2)
+    if var is None: return None
+    exprg = None
+    for g in groups:
+        if '=' not in g and re.search(r'[a-zA-Z]', g): exprg = g
+    if exprg is None: return None
+    bnum = _numer(_grp(back))
+    if bnum is None: return 'skip'
+    try:
+        e = parse_expr(l2py(exprg), transformations=TR, local_dict=LOC)
+        res = simplify(e.subs(symbols(var), val(vals)))
+    except Exception: return 'skip'
+    if not _isnum(res): return 'skip'
+    return 'ok' if simplify(res - bnum) == 0 else 'MISMATCH'
+def _simplify_check(front, back):
+    ft = _strip(front)
+    if not re.search(r'förenkla|faktoriser|utveckla|multiplicera in|ta bort parentes|skriv.*utan parentes|bryt ut', ft, re.I): return None
+    exprg = None
+    for g in _grp(front):
+        if '=' not in g and re.search(r'[a-zA-Z]', g): exprg = g
+    if exprg is None: return None
+    ansg = None
+    for g in _grp(back):
+        r = _rhs(g)
+        if re.search(r'[a-zA-Z]', r): ansg = r; break
+    if ansg is None: return None
+    try:
+        return 'ok' if check_identity(exprg, ansg) else 'MISMATCH'
+    except Exception: return 'skip'
+
+
+def _answer_selfcheck(front, back):
+    """Verify the arithmetic in the answer: EXPR = VALUE, tolerating rounding to VALUE's decimals."""
+    from decimal import Decimal, ROUND_HALF_UP
+    cand=[g for g in _grp(back) if '=' in g]
+    if not cand: return None
+    g=cand[-1]
+    if '\\approx' in g or '%' in g or '\\%' in g or '\\text' in g or '\\pm' in g: return None
+    parts=[p for p in g.split('=') if p.strip()]
+    if len(parts)<2: return None
+    try: lhs=val(parts[0])
+    except Exception: return None
+    if not _isnum(lhs): return None
+    rd=_dec(parts[-1])
+    if rd is None: return None
+    nd = -rd.as_tuple().exponent if rd.as_tuple().exponent<0 else 0
+    try: ld=Decimal(str(float(lhs))).quantize(Decimal(1).scaleb(-nd), rounding=ROUND_HALF_UP)
+    except Exception: return None
+    return 'ok' if ld==rd else 'MISMATCH'
+
 def _special(front, back):
     ft = _strip(front)
     if _OVER.search(ft) or '\\approx' in back or '\\approx' in front: return _estimate_check(front, back)
     if _AVR.search(ft): return _round_check(front, back, ft)
     if _MGN.search(ft): return _mgn_check(front, back)
+    for fn in (_eqn_check, _eval_check, _simplify_check):
+        r = fn(front, back)
+        if r is not None: return r
     return None
 
 def verify_cards(cards):

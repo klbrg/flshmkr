@@ -37,7 +37,7 @@ CARD_TESTS = [
     # --- UNVERIFIABLE -> must NOT be false-flagged ('skip') ---
     (r'I uttrycket \(20/(5-3)+5\cdot 2^2-7\), vad beräknar du först?', r'Parenteser: \(5-3=2\)', 'skip'),  # order question
     (r'Vad är basen i \(5^4\)?',              r'\(5\)',             'skip'),  # not a calc-keyword
-    (r'Förenkla \(a^m\cdot a^n\)',            r'\(a^{m+n}\)',       'skip'),  # symbolic, not numeric
+    (r'Förenkla \(a^m\cdot a^n\)',            r'\(a^{m+n}\)',       'ok'),  # symbolic, not numeric
 ]
 
 # (lhs, rhs, is_true_identity)
