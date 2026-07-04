@@ -126,6 +126,8 @@ def value_check(front, back):
     _sp = _special(front, back)
     if _sp is not None: return _sp
     if any(('=' in g and re.search(r'[A-Za-z]', g)) for g in _grp(front)): return 'skip'
+    _sc = _answer_selfcheck(front, back)   # trust arithmetic shown in the answer (EXPR = VALUE) over a stray front fraction
+    if _sc is not None: return _sc
     bnum = _numer(_grp(back))
     if bnum is None: return 'skip'
     fe = [g for g in _grp(front) if _OP.search(g)]
