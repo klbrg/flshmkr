@@ -26,9 +26,10 @@ downloaded to a figures dir.
    Swedish decimal comma as `{,}` (e.g. `3{,}14`) for correct LaTeX spacing. Write every facit EXACTLY and
    self-consistently. **No trailing period after a formula:** if a `\(...\)` / `\[...\]` is the LAST thing
    in a field, do NOT append a period — write `Beräkna \(-3-2\)`, not `Beräkna \(-3-2\).`
-   **Nothing but a space or line break may directly follow a number** — never a bare `;`. In particular do
-   NOT separate coordinate values with a semicolon (`(1{,}2; 3{,}4)`); use a space (`(1{,}2\ \ 3{,}4)`) or
-   reword.
+   **No bare `;` directly after a formula:** a semicolon immediately after a closing `\)` / `\]` should be
+   a line break instead — write `\(a^{m+n}\)<br>exponenterna adderas`, not `\(a^{m+n}\); exponenterna
+   adderas`. This is ONLY for `;` OUTSIDE MathJax; semicolons INSIDE `\(...\)` are fine (e.g. the coordinate
+   separator `(1{,}2; 3{,}4)` is correct Swedish notation when the decimal is a comma — leave it).
 4. **Tag calculation cards `beräkning` AT CREATION.** A calculation card is one whose answer is a
    determined, computed result: evaluate an expression (incl. `... när x=4`), solve an equation (answer
    `\(x=\ldots\)`), simplify/factor to an expression, round, compute a percent/change-factor, find an MGN,
