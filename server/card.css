@@ -139,6 +139,9 @@ pre code {
 img {
     max-width: 100%;
     height: auto;
+    background: #ffffff;
+    padding: 10px;
     border-radius: 8px;
     margin: 10px 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
