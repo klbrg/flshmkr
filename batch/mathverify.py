@@ -253,7 +253,7 @@ def _eval_check(front, back):
     if var is None: return None
     exprg = None
     for g in groups:
-        if '=' not in g and re.search(r'[a-zA-Z]', g): exprg = g
+        if '=' not in g and re.search(r'(?<![A-Za-z])' + re.escape(var) + r'(?![A-Za-z])', g): exprg = g
     if exprg is None: return None
     bnum = _numer(_grp(back))
     if bnum is None: return 'skip'
@@ -289,6 +289,7 @@ def _answer_selfcheck(front, back):
     if '\\approx' in g or '%' in g or '\\%' in g or '\\text' in g or '\\pm' in g: return None
     parts=[p for p in g.split('=') if p.strip()]
     if len(parts)<2: return None
+    if re.search(r'\\sqrt|\\pi|[A-Za-z]', parts[-1]): return None
     try: lhs=val(parts[0])
     except Exception: return None
     if not _isnum(lhs): return None
@@ -300,8 +301,10 @@ def _answer_selfcheck(front, back):
     return 'ok' if ld==rd else 'MISMATCH'
 
 _FUNC = re.compile(r'\b[fghvpqT]\s*\(')   # function-application notation f(x), v(t): sympy misreads as multiplication
+_TRIG = re.compile(r'(?:\\)?(?:arc)?(?:sin|cos|tan)\b', re.I)   # trig: sympy uses radians, matteboken degrees
 def _special(front, back):
     ft = _strip(front)
+    if _TRIG.search(front) or _TRIG.search(_strip(back)): return 'skip'
     if _FUNC.search(front) or _FUNC.search(_strip(back)): return 'skip'
     if _OVER.search(ft) or '\\approx' in back or '\\approx' in front: return _estimate_check(front, back)
     if _AVR.search(ft): return _round_check(front, back, ft)
