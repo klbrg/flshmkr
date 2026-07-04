@@ -34,6 +34,8 @@ CARD_TESTS = [
     (r'Att dividera med \(\frac{4}{5}\) är samma sak som att multiplicera med?', r'\(\frac{5}{4}\)', 'skip'),
     (r'Beräkna \(\frac{2}{3}\cdot\frac{3}{4}\)', r'\(\frac{2}{3}\cdot\frac{3}{4}=\frac{1}{2}\)', 'ok'),
 
+        (r'Lös ekvationen \(f(x)=9\) där \(f(x)=2x+1\)', r'\(x=4\)','skip'),
+        (r'Beräkna värdet av \(f(x)=2x-x^2\) när \(x=-3\)', r'\(f(-3)=-15\)','skip'),
     # --- UNVERIFIABLE -> must NOT be false-flagged ('skip') ---
     (r'I uttrycket \(20/(5-3)+5\cdot 2^2-7\), vad beräknar du först?', r'Parenteser: \(5-3=2\)', 'skip'),  # order question
     (r'Vad är basen i \(5^4\)?',              r'\(5\)',             'skip'),  # not a calc-keyword

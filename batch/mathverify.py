@@ -125,6 +125,7 @@ def value_check(front, back):
     """Value-equality check for a card KNOWN (by tag) to be a calculation."""
     _sp = _special(front, back)
     if _sp is not None: return _sp
+    if any(('=' in g and re.search(r'[A-Za-z]', g)) for g in _grp(front)): return 'skip'
     bnum = _numer(_grp(back))
     if bnum is None: return 'skip'
     fe = [g for g in _grp(front) if _OP.search(g)]
@@ -212,22 +213,33 @@ def _estimate_check(front, back):
 
 def _eqn_check(front, back):
     ft = _strip(front)
-    if not re.search(r'\blös\b|lösning till|lös ekvationen|lös ut', ft, re.I): return None
-    eqg = None
-    for g in _grp(front):
-        if '=' in g and re.search(r'[a-zA-Z]', g): eqg = g; break
-    if eqg is None: return None
+    if not re.search(r'\bl\xf6s\b|l\xf6sning till|l\xf6s ekvationen|l\xf6s ut', ft, re.I): return None
     sol = None
     for g in _grp(back) + [_strip(back)]:
         m = re.search(r'([a-zA-Z])\s*=\s*([^,;]+)$', g.strip())
         if m: sol = (m.group(1), m.group(2)); break
     if sol is None: return 'skip'
     try:
-        parts = eqg.split('=')
-        L = parse_expr(l2py(parts[0]), transformations=TR, local_dict=LOC)
-        R = parse_expr(l2py(parts[-1]), transformations=TR, local_dict=LOC)
         v = symbols(sol[0]); x = val(sol[1])
-        return 'ok' if simplify(L.subs(v, x) - R.subs(v, x)) == 0 else 'MISMATCH'
+    except Exception: return 'skip'
+    eqgroups = [g for g in _grp(front) if '=' in g]
+    if not eqgroups: return None
+    cand = None
+    if len(eqgroups) == 1:
+        cand = eqgroups[0]
+    else:
+        for g in eqgroups:                       # pick the equation whose only free symbol is the solution variable
+            try:
+                p = g.split('=')
+                diff = parse_expr(l2py(p[0]), transformations=TR, local_dict=LOC) - parse_expr(l2py(p[-1]), transformations=TR, local_dict=LOC)
+                if diff.free_symbols == {v}: cand = g; break
+            except Exception: pass
+    if cand is None: return None
+    try:
+        p = cand.split('=')
+        L = parse_expr(l2py(p[0]), transformations=TR, local_dict=LOC)
+        R = parse_expr(l2py(p[-1]), transformations=TR, local_dict=LOC)
+        return 'ok' if simplify((L - R).subs(v, x)) == 0 else 'MISMATCH'
     except Exception: return 'skip'
 def _eval_check(front, back):
     ft = _strip(front); groups = _grp(front)
@@ -287,8 +299,10 @@ def _answer_selfcheck(front, back):
     except Exception: return None
     return 'ok' if ld==rd else 'MISMATCH'
 
+_FUNC = re.compile(r'\b[fghvpqT]\s*\(')   # function-application notation f(x), v(t): sympy misreads as multiplication
 def _special(front, back):
     ft = _strip(front)
+    if _FUNC.search(front) or _FUNC.search(_strip(back)): return 'skip'
     if _OVER.search(ft) or '\\approx' in back or '\\approx' in front: return _estimate_check(front, back)
     if _AVR.search(ft): return _round_check(front, back, ft)
     if _MGN.search(ft): return _mgn_check(front, back)
