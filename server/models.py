@@ -13,6 +13,7 @@ class GenerateRequest(BaseModel):
     toc: str = ""
     images: list[Image] = []
     feedback: str = ""
+    surrounding_text: str = ""
 
 
 class Flashcard(BaseModel):
@@ -45,3 +46,18 @@ class RephraseRequest(BaseModel):
 
 class RephraseResponse(BaseModel):
     rephrased_text: str
+
+
+class RegenerateCardRequest(BaseModel):
+    card: Flashcard
+    feedback: str
+    selected_text: str
+    book_title: str = ""
+    chapter_title: str = ""
+    toc: str = ""
+    images: list[Image] = []
+    surrounding_text: str = ""
+
+
+class RegenerateCardResponse(BaseModel):
+    card: Flashcard

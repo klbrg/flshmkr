@@ -2,6 +2,7 @@ import re
 import anthropic
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from models import (
     GenerateRequest,
@@ -9,16 +10,24 @@ from models import (
     AddToAnkiRequest,
     AddToAnkiResponse,
     RephraseRequest,
-    RephraseResponse,
+    RegenerateCardRequest,
+    RegenerateCardResponse,
 )
-from claude_client import generate_flashcards, rephrase_text
-from anki_client import add_notes
+from claude_client import generate_flashcards, rephrase_text_stream, regenerate_card
+from anki_client import add_notes, get_tags
+
+
+async def _safe_get_tags() -> list[str]:
+    try:
+        return await get_tags()
+    except Exception:
+        return []
 
 app = FastAPI(title="flshmkr")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^chrome-extension://.*$",
+    allow_origin_regex=r"^(chrome-extension://.*|https://learning\.oreilly\.com|https://learn\.microsoft\.com|https://git-scm\.com)$",
     allow_methods=["POST"],
     allow_headers=["*"],
 )
@@ -47,9 +56,17 @@ def _make_deck_name(book_title: str, chapter_title: str) -> str:
 
 @app.post("/generate", response_model=GenerateResponse)
 async def generate(req: GenerateRequest):
+    existing_tags = await _safe_get_tags()
     try:
         flashcards = generate_flashcards(
-            req.selected_text, req.book_title, req.chapter_title, req.toc, req.images, req.feedback
+            req.selected_text,
+            req.book_title,
+            req.chapter_title,
+            req.toc,
+            req.images,
+            req.feedback,
+            req.surrounding_text,
+            existing_tags,
         )
     except anthropic.RateLimitError:
         raise HTTPException(status_code=429, detail="Rate limited — wait a moment and try again")
@@ -58,6 +75,23 @@ async def generate(req: GenerateRequest):
 
     deck_name = _make_deck_name(req.book_title, req.chapter_title)
     return GenerateResponse(flashcards=flashcards, deck_name=deck_name, images=req.images)
+
+
+@app.post("/regenerate-card", response_model=RegenerateCardResponse)
+async def regenerate_card_endpoint(req: RegenerateCardRequest):
+    existing_tags = await _safe_get_tags()
+    try:
+        card = regenerate_card(
+            req.card, req.feedback, req.selected_text,
+            req.book_title, req.chapter_title, req.toc, req.images,
+            req.surrounding_text, existing_tags,
+        )
+    except anthropic.RateLimitError:
+        raise HTTPException(status_code=429, detail="Rate limited — wait a moment and try again")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Claude API error: {e}")
+
+    return RegenerateCardResponse(card=card)
 
 
 @app.post("/add-to-anki", response_model=AddToAnkiResponse)
@@ -72,13 +106,15 @@ async def add_to_anki(req: AddToAnkiRequest):
     return AddToAnkiResponse(added=added, errors=errors)
 
 
-@app.post("/rephrase", response_model=RephraseResponse)
+@app.post("/rephrase")
 async def rephrase(req: RephraseRequest):
-    try:
-        rephrased = rephrase_text(req.text)
-    except anthropic.RateLimitError:
-        raise HTTPException(status_code=429, detail="Rate limited — wait a moment and try again")
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Claude API error: {e}")
+    def iter_chunks():
+        try:
+            for chunk in rephrase_text_stream(req.text):
+                yield chunk
+        except anthropic.RateLimitError:
+            yield "\n[error: rate limited, try again]"
+        except Exception as e:
+            yield f"\n[error: {e}]"
 
-    return RephraseResponse(rephrased_text=rephrased)
+    return StreamingResponse(iter_chunks(), media_type="text/plain; charset=utf-8")

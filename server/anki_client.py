@@ -133,6 +133,11 @@ async def ensure_deck(deck_name: str) -> None:
     await _invoke("createDeck", deck=deck_name)
 
 
+async def get_tags() -> list[str]:
+    result = await _invoke("getTags")
+    return result.get("result", []) or []
+
+
 async def store_images(images: list[Image]) -> None:
     for img in images:
         await _invoke("storeMediaFile", filename=img.filename, data=img.data)
@@ -160,7 +165,7 @@ async def add_notes(
     errors = []
 
     for i, card in enumerate(flashcards):
-        tags = list({*card.tags, "flshmkr"})
+        tags = list(card.tags)
 
         if card.card_type == "cloze":
             model = "flshmkr Cloze"
