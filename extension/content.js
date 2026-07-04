@@ -1,6 +1,33 @@
 // Cache: ISBN → { metadata, toc }
 const cache = {};
 
+// Extract ~1500 chars before and after the current selection for Claude context.
+function getSurroundingText(maxChars = 1500) {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return "";
+  const selectedText = sel.toString();
+  if (!selectedText) return "";
+  const range = sel.getRangeAt(0);
+
+  let container = range.commonAncestorContainer;
+  if (container.nodeType === Node.TEXT_NODE) container = container.parentElement;
+  while (container && container !== document.body) {
+    const len = (container.innerText || "").length;
+    if (len > selectedText.length + 200) break;
+    container = container.parentElement;
+  }
+  if (!container) return "";
+
+  const fullText = container.innerText || "";
+  const idx = fullText.indexOf(selectedText.trim());
+  if (idx < 0) return "";
+
+  const before = fullText.slice(Math.max(0, idx - maxChars), idx).trim();
+  const after = fullText.slice(idx + selectedText.length, idx + selectedText.length + maxChars).trim();
+  if (!before && !after) return "";
+  return `[...] ${before}\n\n<<<HIGHLIGHT>>>\n\n${after} [...]`.trim();
+}
+
 // Extract book ISBN from the page URL
 // URL pattern: https://learning.oreilly.com/library/view/book-name/ISBN/file.xhtml
 function parseOreillyUrl() {
@@ -291,6 +318,8 @@ function createOverlayHost(pos) {
   return { host, shadow };
 }
 
+let _rephraseStream = null;
+
 function showRephraseLoading() {
   const pos = getOverlayPosition();
   const { shadow } = createOverlayHost(pos);
@@ -299,9 +328,12 @@ function showRephraseLoading() {
   card.className = "overlay";
   card.innerHTML = '<div class="loading"><div class="spinner"></div>Rephrasing\u2026</div>';
   shadow.appendChild(card);
+  _rephraseStream = null;
 }
 
-function showRephraseOverlay(text, isError) {
+function ensureStreamOverlay() {
+  if (_rephraseStream) return _rephraseStream;
+
   const pos = getOverlayPosition();
   const { host, shadow } = createOverlayHost(pos);
 
@@ -309,24 +341,36 @@ function showRephraseOverlay(text, isError) {
   card.className = "overlay";
 
   const textDiv = document.createElement("div");
-  textDiv.className = isError ? "text error" : "text";
-  textDiv.textContent = text;
+  textDiv.className = "text";
   card.appendChild(textDiv);
+  shadow.appendChild(card);
+
+  _rephraseStream = { host, shadow, card, textDiv, buffer: "" };
+  return _rephraseStream;
+}
+
+function appendRephraseChunk(chunk) {
+  const s = ensureStreamOverlay();
+  s.buffer += chunk;
+  s.textDiv.textContent = s.buffer;
+}
+
+function finishRephraseStream() {
+  const s = _rephraseStream;
+  if (!s) return;
 
   const actions = document.createElement("div");
   actions.className = "actions";
 
-  if (!isError) {
-    const copyBtn = document.createElement("button");
-    copyBtn.className = "copy-btn";
-    copyBtn.textContent = "Copy";
-    copyBtn.addEventListener("click", () => {
-      navigator.clipboard.writeText(text);
-      copyBtn.textContent = "Copied!";
-      setTimeout(() => { copyBtn.textContent = "Copy"; }, 1500);
-    });
-    actions.appendChild(copyBtn);
-  }
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "copy-btn";
+  copyBtn.textContent = "Copy";
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(s.buffer);
+    copyBtn.textContent = "Copied!";
+    setTimeout(() => { copyBtn.textContent = "Copy"; }, 1500);
+  });
+  actions.appendChild(copyBtn);
 
   const closeBtn = document.createElement("button");
   closeBtn.className = "close-btn";
@@ -334,10 +378,8 @@ function showRephraseOverlay(text, isError) {
   closeBtn.addEventListener("click", removeRephraseOverlay);
   actions.appendChild(closeBtn);
 
-  card.appendChild(actions);
-  shadow.appendChild(card);
+  s.card.appendChild(actions);
 
-  // Dismiss on Escape
   const onKey = (e) => {
     if (e.key === "Escape") {
       removeRephraseOverlay();
@@ -346,7 +388,49 @@ function showRephraseOverlay(text, isError) {
   };
   document.addEventListener("keydown", onKey);
 
-  // Dismiss on click outside
+  const onClick = (e) => {
+    if (!s.host.contains(e.target)) {
+      removeRephraseOverlay();
+      document.removeEventListener("click", onClick);
+    }
+  };
+  setTimeout(() => document.addEventListener("click", onClick), 100);
+
+  _rephraseStream = null;
+}
+
+function showRephraseError(message) {
+  const pos = getOverlayPosition();
+  const { host, shadow } = createOverlayHost(pos);
+
+  const card = document.createElement("div");
+  card.className = "overlay";
+
+  const textDiv = document.createElement("div");
+  textDiv.className = "text error";
+  textDiv.textContent = message;
+  card.appendChild(textDiv);
+
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "close-btn";
+  closeBtn.textContent = "\u00d7";
+  closeBtn.addEventListener("click", removeRephraseOverlay);
+  actions.appendChild(closeBtn);
+  card.appendChild(actions);
+  shadow.appendChild(card);
+
+  _rephraseStream = null;
+
+  const onKey = (e) => {
+    if (e.key === "Escape") {
+      removeRephraseOverlay();
+      document.removeEventListener("keydown", onKey);
+    }
+  };
+  document.addEventListener("keydown", onKey);
+
   const onClick = (e) => {
     if (!host.contains(e.target)) {
       removeRephraseOverlay();
@@ -356,18 +440,59 @@ function showRephraseOverlay(text, isError) {
   setTimeout(() => document.addEventListener("click", onClick), 100);
 }
 
+async function gatherContext(fallbackSelectionText = "") {
+  const selectedText = window.getSelection()?.toString()?.trim() || fallbackSelectionText || "";
+  const surroundingText = getSurroundingText();
+  const imgUrls = getSelectionImages();
+  const imageList = (await Promise.all(imgUrls.map(fetchImageAsBase64))).filter(Boolean);
+
+  const host = window.location.hostname;
+
+  let base;
+  if (host === "git-scm.com") {
+    base = { selected_text: selectedText, ...parseGitScm() };
+  } else if (host === "learn.microsoft.com") {
+    base = { selected_text: selectedText, ...parseMicrosoftLearn() };
+  } else {
+    const isbn = parseOreillyUrl();
+    if (isbn) {
+      const { metadata, toc } = await getBookData(isbn);
+      base = {
+        selected_text: selectedText,
+        book_title: metadata?.title || document.title,
+        chapter_title: getCurrentChapter(toc),
+        toc,
+      };
+    } else {
+      base = {
+        selected_text: selectedText,
+        book_title: document.title,
+        chapter_title: "",
+        toc: "",
+      };
+    }
+  }
+  return { ...base, surrounding_text: surroundingText, images: imageList };
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === "showRephraseLoading") {
     showRephraseLoading();
     return;
   }
 
-  if (msg.action === "showRephrase") {
-    if (msg.error) {
-      showRephraseOverlay(msg.error, true);
-    } else {
-      showRephraseOverlay(msg.rephrased_text, false);
-    }
+  if (msg.action === "appendRephrase") {
+    appendRephraseChunk(msg.chunk);
+    return;
+  }
+
+  if (msg.action === "finishRephrase") {
+    finishRephraseStream();
+    return;
+  }
+
+  if (msg.action === "showRephraseError") {
+    showRephraseError(msg.error);
     return;
   }
 
@@ -376,56 +501,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return;
   }
 
-  if (msg.action === "getContext") {
-    const selectedText = window.getSelection()?.toString()?.trim() || "";
-    const imgUrls = getSelectionImages();
-
-    const buildResponse = async (base) => {
-      const images = (await Promise.all(imgUrls.map(fetchImageAsBase64))).filter(Boolean);
-      return { ...base, images };
-    };
-
-    const host = window.location.hostname;
-
-    // Git book path
-    if (host === "git-scm.com") {
-      const ctx = parseGitScm();
-      buildResponse({ selected_text: selectedText, ...ctx }).then(sendResponse);
-      return true;
-    }
-
-    // Microsoft Learn path
-    if (host === "learn.microsoft.com") {
-      const ctx = parseMicrosoftLearn();
-      buildResponse({ selected_text: selectedText, ...ctx }).then(sendResponse);
-      return true;
-    }
-
-    // O'Reilly path
-    const isbn = parseOreillyUrl();
-    if (isbn) {
-      getBookData(isbn).then(async ({ metadata, toc }) => {
-        const bookTitle = metadata?.title || document.title;
-        const chapterTitle = getCurrentChapter(toc);
-        const resp = await buildResponse({
-          selected_text: selectedText,
-          book_title: bookTitle,
-          chapter_title: chapterTitle,
-          toc,
-        });
-        sendResponse(resp);
-      });
-      return true;
-    }
-
-    // Generic fallback
-    buildResponse({
-      selected_text: selectedText,
-      book_title: document.title,
-      chapter_title: "",
-      toc: "",
-    }).then(sendResponse);
-    return true;
+  if (msg.action === "toggleSidebar") {
+    if (window.__flshmkrSidebar) window.__flshmkrSidebar.toggle();
+    return;
   }
-  return true;
+
+  if (msg.action === "generateFromSelection") {
+    gatherContext(msg.selectionText).then((ctx) => {
+      if (!ctx.selected_text) return;
+      if (window.__flshmkrSidebar) window.__flshmkrSidebar.openWithContext(ctx);
+    });
+    return;
+  }
 });

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "flshmkr",
-  "version": "1.0",
+  "version": "1.7.1",
   "description": "Generate Anki flashcards from O'Reilly Learning highlights",
   "permissions": ["contextMenus", "activeTab", "storage"],
   "host_permissions": [
@@ -19,12 +19,12 @@
         "https://learn.microsoft.com/*",
         "https://git-scm.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["sidebar.js", "content.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "flshmkr"
+    "default_title": "flshmkr - toggle sidebar"
   },
   "commands": {
     "rephrase-selection": {
@@ -33,6 +33,13 @@
         "mac": "Command+Shift+K"
       },
       "description": "Rephrase selected text"
+    },
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+O",
+        "mac": "Command+Shift+O"
+      },
+      "description": "Toggle the flshmkr sidebar"
     }
   }
 }
