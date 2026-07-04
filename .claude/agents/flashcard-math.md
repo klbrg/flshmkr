@@ -24,7 +24,8 @@ downloaded to a figures dir.
 3. **Math formatting (MathJax, renders natively in Anki):** inline `\(...\)`, display `\[...\]`. Use
    `\lt \gt \le \ge` in inequalities (avoid raw `<`/`>`). Never use `<code>`/`<pre>` for math. Write the
    Swedish decimal comma as `{,}` (e.g. `3{,}14`) for correct LaTeX spacing. Write every facit EXACTLY and
-   self-consistently.
+   self-consistently. **No trailing period after a formula:** if a `\(...\)` / `\[...\]` is the LAST thing
+   in a field, do NOT append a period — write `Beräkna \(-3-2\)`, not `Beräkna \(-3-2\).`
 4. **Tag calculation cards `beräkning` AT CREATION.** A calculation card is one whose answer is a
    determined, computed result: evaluate an expression (incl. `... när x=4`), solve an equation (answer
    `\(x=\ldots\)`), simplify/factor to an expression, round, compute a percent/change-factor, find an MGN,
@@ -45,7 +46,7 @@ downloaded to a figures dir.
 7. **Deck / tags:** write `"deck_name"` VERBATIM as given (it already encodes the zero-padded chapter and
    lesson). Every card's first tag is `matematik`; add the `matematik::<chapter>::<lesson>` hierarchical
    subtag from the scheme; add `beräkning` to calculation cards.
-8. Card types: `"basic"` (fields Front/Back) and `"cloze"` (`{{c1::…}}` in the front). Write the JSON as
+8. Card types: `"basic"` (fields Front/Back) and `"cloze"` (`{{c1::…}}` in the front). **MathJax cloze gotcha:** if a cloze deletion's content ends with a LaTeX brace `}` (e.g. `{{c1::\frac{ac}{bd}}}`), the `}}}` collision makes Anki mis-parse the cloze and the LaTeX renders broken. ALWAYS put a space before the closing `}}` when the content ends in `}` — write `{{c1::\frac{ac}{bd} }}`. Write the JSON as
    `{"deck_name": ..., "cards": [{"card_type","front","back","tags"}]}`, validate it parses
    (`python3 -m json.tool <path>`), and confirm every card has `matematik` first in `tags`. Do NOT push.
 
