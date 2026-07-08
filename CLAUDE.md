@@ -25,7 +25,7 @@ flshmkr is a Chrome extension + FastAPI backend that converts highlighted text f
     fetches them in-page as base64); the agent views and selectively attaches them
   - `add_cards.py` — push a cards JSON (with optional `images`) to Anki via `anki_client`
 
-## Two ways to make cards
+## Four ways to make cards
 
 - **Highlight-while-reading** — the extension + server: select text on a page,
   preview/edit in the sidebar, add. Best for cherry-picking facts.
@@ -35,6 +35,18 @@ flshmkr is a Chrome extension + FastAPI backend that converts highlighted text f
   `server/prompt.txt`, and pushes them. Procedure lives in
   `.claude/skills/batch-chapter/SKILL.md`. Deck names match the extension's,
   so both paths land in the same hierarchy.
+- **Batch a whole prose book** — for a book the user gives as a Legimus/MTM id,
+  a local `.epub`, or an O'Reilly URL (e.g. "card this book"). Extract the full
+  text, split into per-chapter files, fan out one `flashcard-prose` agent per
+  chapter in waves of ~5-6, and push + sync per wave to `Books::<Title>::Kapitel
+  NN`. Procedure lives in `.claude/skills/batch-book/SKILL.md`; math books use
+  the `flashcard-math` agent + SymPy gate instead.
+- **Build a deck from knowledge (no source)** — for "make me a deck about X"
+  where there is no book: design a module curriculum, fan out one
+  `flashcard-knowledge` agent per module in waves of ~5, push + sync per wave
+  (inline `addNote`, dedup scoped to the target deck). Each agent verifies its
+  claims with the local toolchain before carding (for Go: compile/run every
+  snippet — the analogue of the SymPy gate). Example deck: `Golang::NN. <Module>`.
 
 ## Running
 
