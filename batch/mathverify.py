@@ -63,7 +63,7 @@ _grp = lambda x: re.findall(r'\\\((.+?)\\\)', x)
 _COMPUTE = re.compile(r'beräkna|förenkla|förläng|förkorta|enklaste form|vad blir|värdet av|uträkna|skriv .*som', re.I)
 _NOVALUE = re.compile(r'minsta gemensam|gemensam\w* nämnare|\bbasen\b|exponent|reciprok|\binvers|inverterade|omvända|\bav\b|procent|samma sak|vad kommer|\bförst\b|ordning|vilk\w* .* före|vad kallas|vad menas|hur (dividerar|multiplicerar|bildar|adderar)', re.I)
 _APPROX = re.compile(r'överslag|avrunda|avrundn|ungefär', re.I)
-_MGN = re.compile(r'minsta gemensam\w* (nämnare|multipel)|\bMGN\b', re.I)
+_MGN = re.compile(r'minsta gemensam\w* (nämnare|multipel)|\bMGN\b|least common (denominator|multiple)|\bLC[MD]\b', re.I)
 _OP = re.compile(r'\\cdot|\\div|\\times|[-+]|/|frac|sqrt|\^')
 def _rhs(g):
     return g.split('=')[-1] if '=' in g else g
@@ -116,7 +116,7 @@ def check_identity(lhs_latex, rhs_latex):
     except Exception: return diff == 0
 
 
-_BER = re.compile(r'(?:^|::)ber[aä]kning$', re.I)
+_BER = re.compile(r'(?:^|::)(?:ber[aä]kning|calculation)$', re.I)
 def is_calc_tag(tags):
     return any(_BER.search(t) for t in (tags or []))
 def _is_mgn_tag(tags):
@@ -158,8 +158,8 @@ def _mgn_check(front, back):
     return 'skip'
 
 from decimal import Decimal, ROUND_HALF_UP
-_AVR = re.compile(r'avrunda|avrundn', re.I)
-_OVER = re.compile(r'överslag', re.I)
+_AVR = re.compile(r'avrunda|avrundn|\bround(?:ed|ing)?\b', re.I)
+_OVER = re.compile(r'överslag|estimat', re.I)
 _WORD = {'en':1,'ett':1,'två':2,'tre':3,'fyra':4,'fem':5,'sex':6}
 def _dec(g):
     g = re.sub(r'\\text\{[^{}]*\}', '', g)
@@ -215,7 +215,7 @@ def _estimate_check(front, back):
 
 def _eqn_check(front, back):
     ft = _strip(front)
-    if not re.search(r'\bl\xf6s\b|l\xf6sning till|l\xf6s ekvationen|l\xf6s ut', ft, re.I): return None
+    if not re.search(r'\bl\xf6s\b|l\xf6sning till|l\xf6s ekvationen|l\xf6s ut|\bsolve\b', ft, re.I): return None
     sol = None
     for g in _grp(back) + [_strip(back)]:
         m = re.search(r'([a-zA-Z])\s*=\s*([^,;]+)$', g.strip())
@@ -250,7 +250,7 @@ def _eval_check(front, back):
         m = re.match(r'\s*([a-zA-Z])\s*=\s*(.+)$', g.strip())
         if m: var, vals = m.group(1), m.group(2)
     if var is None:
-        m = re.search(r'(?:när|för|då)\s+([a-zA-Z])\s*=\s*(-?\d+(?:[.,]\d+)?)', ft)
+        m = re.search(r'(?:när|för|då|when|with|given|if)\s+([a-zA-Z])\s*=\s*(-?\d+(?:[.,]\d+)?)', ft)
         if m: var, vals = m.group(1), m.group(2)
     if var is None: return None
     exprg = None
@@ -267,7 +267,7 @@ def _eval_check(front, back):
     return 'ok' if simplify(res - bnum) == 0 else 'MISMATCH'
 def _simplify_check(front, back):
     ft = _strip(front)
-    if not re.search(r'förenkla|faktoriser|utveckla|multiplicera in|ta bort parentes|skriv.*utan parentes|bryt ut', ft, re.I): return None
+    if not re.search(r'förenkla|faktoriser|utveckla|multiplicera in|ta bort parentes|skriv.*utan parentes|bryt ut|simplify|factor|expand|distribute', ft, re.I): return None
     exprg = None
     for g in _grp(front):
         if '=' not in g and re.search(r'[a-zA-Z]', g): exprg = g
