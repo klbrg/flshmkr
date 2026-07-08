@@ -136,6 +136,27 @@ pre code {
     box-shadow: none;
 }
 
+/* Long MathJax formulas: scroll inside the formula, never the page.
+   Anki renders MathJax v3 (mjx-container); .MathJax covers older clients. */
+mjx-container,
+.MathJax {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 0 3px;
+    vertical-align: middle;
+}
+
+mjx-container[display="true"],
+.MathJax_Display {
+    display: block;
+    margin: 0.4em 0;
+}
+
+.card {
+    overflow-wrap: break-word;
+}
+
 img {
     max-width: 100%;
     height: auto;
