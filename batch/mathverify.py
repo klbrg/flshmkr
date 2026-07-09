@@ -149,6 +149,8 @@ def _is_mgn_tag(tags):
     return any('mgn' in t.lower() for t in (tags or []))
 def value_check(front, back):
     """Value-equality check for a card KNOWN (by tag) to be a calculation."""
+    if re.search(r'\d[0-9A-Fa-f]*_\{?\d', _strip(front) + _strip(back)):
+        return 'skip'                      # base-subscript number (e.g. 42_5); not decimal, agent self-verifies
     _sp = _special(front, back)
     if _sp is not None: return _sp
     if any(('=' in g and re.search(r'[A-Za-z]', g)) for g in _grp(front)): return 'skip'
