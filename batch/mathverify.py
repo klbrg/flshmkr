@@ -1,8 +1,10 @@
 import re
-from sympy import sqrt, Rational, simplify, pi, Abs, Integer, ilcm, symbols
-from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
-TR = standard_transformations + (implicit_multiplication_application,)
-LOC = {'sqrt': sqrt, 'Rational': Rational, 'pi': pi, 'Abs': Abs}
+from sympy import sqrt, Rational, simplify, pi, Abs, Integer, ilcm, symbols, binomial, factorial
+from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
+                                        implicit_multiplication_application, factorial_notation)
+TR = standard_transformations + (implicit_multiplication_application, factorial_notation)
+LOC = {'sqrt': sqrt, 'Rational': Rational, 'pi': pi, 'Abs': Abs,
+       'binomial': binomial, 'factorial': factorial}
 
 def read_group(s, i):
     depth = 0
@@ -39,10 +41,20 @@ def conv(s):
         if not g: s = s[:k] + s[k+5:]; continue
         a, i = g
         s = s[:k] + 'sqrt(' + conv(a) + ')' + s[i:]
+    while True:                                          # \binom{n}{k} -> binomial(n,k)
+        k = s.find('\\binom')
+        if k < 0: break
+        i = _ws(s, k+6); g1 = read_group(s, i)
+        if not g1: s = s[:k] + s[k+6:]; continue
+        a, i = g1; i = _ws(s, i); g2 = read_group(s, i)
+        if not g2: s = s[:k] + s[k+6:]; continue
+        b, i = g2
+        s = s[:k] + 'binomial((' + conv(a) + '),(' + conv(b) + '))' + s[i:]
     return s
 def l2py(s):
     s = re.sub(r'\\[()\[\]]', '', s).replace('\\left', '').replace('\\right', '')
     s = s.replace('\\dfrac', '\\frac').replace('\\tfrac', '\\frac')
+    s = s.replace('\\dbinom', '\\binom').replace('\\tbinom', '\\binom')
     s = re.sub(r'(\d)\s*(\\frac)', r'\1+\2', s)          # mixed number: 1\frac{1}{4} -> 1+1/4
     s = s.replace('\\cdot', '*').replace('\\times', '*').replace('\\div', '/').replace('\\pi', 'pi')
     s = s.replace('\\,', '').replace('\\!', '').replace('{,}', '.').strip()
