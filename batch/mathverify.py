@@ -1,11 +1,12 @@
 import re
 from sympy import (sqrt, Rational, simplify, pi, Abs, Integer, ilcm, symbols, binomial,
-                   factorial, gcd, lcm, Mod)
+                   factorial, gcd, lcm, Mod, floor, ceiling)
 from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
                                         implicit_multiplication_application, factorial_notation)
 TR = standard_transformations + (implicit_multiplication_application, factorial_notation)
 LOC = {'sqrt': sqrt, 'Rational': Rational, 'pi': pi, 'Abs': Abs,
-       'binomial': binomial, 'factorial': factorial, 'gcd': gcd, 'lcm': lcm, 'Mod': Mod}
+       'binomial': binomial, 'factorial': factorial, 'gcd': gcd, 'lcm': lcm, 'Mod': Mod,
+       'floor': floor, 'ceiling': ceiling}
 
 def read_group(s, i):
     depth = 0
@@ -64,6 +65,7 @@ def l2py(s):
     s = s.replace('\\dbinom', '\\binom').replace('\\tbinom', '\\binom')
     s = re.sub(r'\\(?:operatorname|text|mathrm|mathop)\s*\{\s*lcm\s*\}', 'lcm', s, flags=re.I)
     s = s.replace('\\lcm', 'lcm').replace('\\gcd', 'gcd').replace('\\bmod', '%')
+    s = s.replace('\\lfloor', 'floor(').replace('\\rfloor', ')').replace('\\lceil', 'ceiling(').replace('\\rceil', ')')
     s = re.sub(r'(\d)\s*(\\frac)', r'\1+\2', s)          # mixed number: 1\frac{1}{4} -> 1+1/4
     s = s.replace('\\cdot', '*').replace('\\times', '*').replace('\\div', '/').replace('\\pi', 'pi')
     s = s.replace('\\,', '').replace('\\!', '').replace('{,}', '.').strip()
