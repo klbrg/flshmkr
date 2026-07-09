@@ -17,13 +17,19 @@ def read_group(s, i):
 def _ws(s, i):
     while i < len(s) and s[i] == ' ': i += 1
     return i
+def read_arg(s, i):
+    """A LaTeX argument: a {braced group} or, for shorthand like \\frac12, a single token."""
+    i = _ws(s, i)
+    if i >= len(s): return None
+    if s[i] == '{': return read_group(s, i)
+    return s[i], i + 1
 def conv(s):
     while True:
         k = s.find('\\frac')
         if k < 0: break
-        i = _ws(s, k+5); g1 = read_group(s, i)
+        i = _ws(s, k+5); g1 = read_arg(s, i)
         if not g1: s = s[:k] + s[k+5:]; continue
-        a, i = g1; i = _ws(s, i); g2 = read_group(s, i)
+        a, i = g1; i = _ws(s, i); g2 = read_arg(s, i)
         if not g2: s = s[:k] + s[k+5:]; continue
         b, i = g2
         s = s[:k] + '((' + conv(a) + ')/(' + conv(b) + '))' + s[i:]
@@ -303,6 +309,13 @@ def _answer_selfcheck(front, back):
     if '\\approx' in g or '%' in g or '\\%' in g or '\\text' in g or '\\pm' in g: return None
     parts=[p for p in g.split('=') if p.strip()]
     if len(parts)<2: return None
+    if re.search(r'\\[dt]?frac', parts[-1]):     # fraction answer (e.g. =\frac{1}{2}): exact compare, not decimal rounding
+        try:
+            lhs=val(parts[0]); rhs=val(parts[-1])
+            if _isnum(lhs) and _isnum(rhs):
+                return 'ok' if simplify(lhs-rhs)==0 else 'MISMATCH'
+        except Exception: pass
+        return None
     if re.search(r'\\sqrt|\\pi|[A-Za-z]', parts[-1]): return None
     try: lhs=val(parts[0])
     except Exception: return None
