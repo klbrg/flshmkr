@@ -4,9 +4,12 @@ from sympy import (sqrt, Rational, simplify, pi, Abs, Integer, ilcm, symbols, bi
 from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
                                         implicit_multiplication_application, factorial_notation)
 TR = standard_transformations + (implicit_multiplication_application, factorial_notation)
+from functools import reduce as _reduce
+def _gcd_multi(*a): return _reduce(gcd, a)     # sympy gcd/lcm are binary; fold over 3+ args
+def _lcm_multi(*a): return _reduce(lcm, a)
 LOC = {'sqrt': sqrt, 'Rational': Rational, 'pi': pi, 'Abs': Abs,
-       'binomial': binomial, 'factorial': factorial, 'gcd': gcd, 'lcm': lcm, 'Mod': Mod,
-       'floor': floor, 'ceiling': ceiling}
+       'binomial': binomial, 'factorial': factorial, 'gcd': _gcd_multi, 'lcm': _lcm_multi,
+       'Mod': Mod, 'floor': floor, 'ceiling': ceiling}
 
 def read_group(s, i):
     depth = 0
@@ -86,7 +89,7 @@ _grp = lambda x: re.findall(r'\\\((.+?)\\\)', x)
 _COMPUTE = re.compile(r'beräkna|förenkla|förläng|förkorta|enklaste form|vad blir|värdet av|uträkna|skriv .*som', re.I)
 _NOVALUE = re.compile(r'minsta gemensam|gemensam\w* nämnare|\bbasen\b|exponent|reciprok|\binvers|inverterade|omvända|\bav\b|procent|samma sak|vad kommer|\bförst\b|ordning|vilk\w* .* före|vad kallas|vad menas|hur (dividerar|multiplicerar|bildar|adderar)', re.I)
 _APPROX = re.compile(r'överslag|avrunda|avrundn|ungefär', re.I)
-_MGN = re.compile(r'minsta gemensam\w* (nämnare|multipel)|\bMGN\b|least common (denominator|multiple)|\bLC[MD]\b', re.I)
+_MGN = re.compile(r'minsta gemensam\w* (nämnare|multipel)|\bMGN\b', re.I)  # matteboken MGN only; AoPS lcm() goes through value_check
 _OP = re.compile(r'\\cdot|\\div|\\times|[-+]|/|frac|sqrt|\^')
 def _rhs(g):
     return g.split('=')[-1] if '=' in g else g
@@ -290,7 +293,7 @@ def _eval_check(front, back):
     return 'ok' if simplify(res - bnum) == 0 else 'MISMATCH'
 def _simplify_check(front, back):
     ft = _strip(front)
-    if not re.search(r'förenkla|faktoriser|utveckla|multiplicera in|ta bort parentes|skriv.*utan parentes|bryt ut|simplify|factor|expand|distribute', ft, re.I): return None
+    if not re.search(r'förenkla|faktoriser|utveckla|multiplicera in|ta bort parentes|skriv.*utan parentes|bryt ut|\bsimplify|\bfactor(?:s|ed|ing)?\b|\bexpand|\bdistribute', ft, re.I): return None
     exprg = None
     for g in _grp(front):
         if '=' not in g and re.search(r'[a-zA-Z]', g): exprg = g
@@ -311,7 +314,8 @@ def _answer_selfcheck(front, back):
     cand=[g for g in _grp(back) if '=' in g]
     if not cand: return None
     g=cand[-1]
-    if '\\approx' in g or '%' in g or '\\%' in g or '\\text' in g or '\\pm' in g: return None
+    gg = re.sub(r'\\(?:operatorname|text|mathrm|mathop)\s*\{\s*(?:lcm|gcd)\s*\}', 'lcm', g)  # function wrappers, not prose
+    if '\\approx' in gg or '%' in gg or '\\%' in gg or '\\text' in gg or '\\pm' in gg: return None
     parts=[p for p in g.split('=') if p.strip()]
     if len(parts)<2: return None
     if re.search(r'\\[dt]?frac', parts[-1]):     # fraction answer (e.g. =\frac{1}{2}): exact compare, not decimal rounding
