@@ -6,11 +6,36 @@ from models import Flashcard, Image
 
 CARD_CSS = (Path(__file__).parent / "card.css").read_text()
 
+# Shrink MathJax formulas that are wider than the card so nothing needs
+# horizontal scrolling (MathJax 3 cannot line-break long expressions).
+# Below 70% scale we stop shrinking and let card.css's overflow-x take over.
+FIT_MATH_JS = """\
+<script>
+(function () {
+  function fitMath() {
+    document.querySelectorAll("mjx-container, .MathJax").forEach(function (el) {
+      el.style.fontSize = "";
+      var limit = (el.parentElement || document.body).clientWidth;
+      if (limit > 0 && el.scrollWidth > limit) {
+        var scale = Math.max(0.7, limit / el.scrollWidth);
+        el.style.fontSize = (scale * 100).toFixed(1) + "%";
+      }
+    });
+  }
+  if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+    MathJax.startup.promise.then(fitMath);
+  }
+  setTimeout(fitMath, 150);
+  setTimeout(fitMath, 600);
+})();
+</script>"""
+
 BASIC_FRONT = """\
 <div class=card>
 <p>{{Front}}</p>
 <hr>
-</div>"""
+</div>
+""" + FIT_MATH_JS
 
 BASIC_BACK = """\
 <div class=card>
@@ -19,12 +44,14 @@ BASIC_BACK = """\
 <div class=back>
 <p>{{Back}}</p>
 </div>
-</div>"""
+</div>
+""" + FIT_MATH_JS
 
 CLOZE_FRONT = """\
 <div class=card>
 <p>{{cloze:Text}}</p>
-</div>"""
+</div>
+""" + FIT_MATH_JS
 
 CLOZE_BACK = """\
 <div class=card>
@@ -33,7 +60,8 @@ CLOZE_BACK = """\
 <div class=extra>
 {{Extra}}
 </div>
-</div>"""
+</div>
+""" + FIT_MATH_JS
 
 BASIC_MODEL = {
     "modelName": "flshmkr Basic",

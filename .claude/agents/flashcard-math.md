@@ -30,6 +30,10 @@ downloaded to a figures dir.
    a line break instead — write `\(a^{m+n}\)<br>exponenterna adderas`, not `\(a^{m+n}\); exponenterna
    adderas`. This is ONLY for `;` OUTSIDE MathJax; semicolons INSIDE `\(...\)` are fine (e.g. the coordinate
    separator `(1{,}2; 3{,}4)` is correct Swedish notation when the decimal is a comma — leave it).
+   **Keep each formula SHORT (MathJax cannot line-break):** split long derivation chains into SEPARATE
+   `\(...\)` groups joined by `<br>`, one complete equation/step per group; never split INSIDE an
+   expression — every group must be standalone-parsable (half-expressions render wrong and break the
+   SymPy gate). Rough limit: ~40 characters of LaTeX per group.
 4. **Tag calculation cards `beräkning` AT CREATION.** A calculation card is one whose answer is a
    determined, computed result: evaluate an expression (incl. `... när x=4`), solve an equation (answer
    `\(x=\ldots\)`), simplify/factor to an expression, round, compute a percent/change-factor, find an MGN,

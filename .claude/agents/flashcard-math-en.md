@@ -33,6 +33,13 @@ the tag scheme, and the section's topic emphasis.
    `Evaluate \(-3-2\)`, not `Evaluate \(-3-2\).` **No bare `;` directly after a formula:** a
    semicolon immediately after a closing `\)` / `\]` should be a line break instead — write
    `\(a^{m+n}\)<br>the exponents add`, not `\(a^{m+n}\); the exponents add`.
+   **Keep each formula SHORT (MathJax cannot line-break):** a long derivation chain must be split
+   into SEPARATE `\(...\)` groups joined by `<br>`, one complete equation/step per group — write
+   `\(x^2+6x=11\)<br>\((x+3)^2=20\)<br>\(x=-3\pm 2\sqrt{5}\)`, NOT one giant
+   `\[x^2+6x=11 \Rightarrow (x+3)^2=20 \Rightarrow \ldots\]`. Never split INSIDE an expression —
+   every `\(...\)` group must be a complete, standalone-parsable statement (half-expressions
+   render wrong and break the SymPy gate). Rough limit: if a single group would exceed ~40
+   characters of LaTeX, break the derivation into steps.
 5. **Tag calculation cards `calculation` AT CREATION.** A calculation card is one whose answer is a
    determined, computed result: evaluate an expression, solve an equation (answer `\(x=\ldots\)`),
    simplify/factor to an expression, compute a power/root, etc. Do NOT tag concept/definition
